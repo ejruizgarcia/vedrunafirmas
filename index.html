@@ -1,1 +1,1367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libro de Firmas - Bicentenario Vedruna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Pinyon+Script&display=swap" rel="stylesheet">
+    
+    <!-- LeafletJS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        body {
+            font-family: 'Playfair Display', serif;
+            overflow: hidden;
+            height: 100vh;
+            color: #3a2a1a;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            background-color: #f0e6d2; /* Un color de fondo suave por si la imagen falla */
+        }
+
+        #background-watermark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('https://storage.googleapis.com/maker-interactives-prod/user-uploaded-assets/manso-3.jpg-36fe2f6f-c415-47fe-9786-6bccb263171e');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.25; /* Efecto marca de agua, ligeramente más visible */
+            z-index: -1;
+        }
+
+        /* Fuentes especiales */
+        .font-script {
+            font-family: 'Pinyon Script', cursive;
+            font-size: 1.5rem; /* Ajustar tamaño para legibilidad */
+            line-height: 2rem;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Contenedor principal */
+        #app-container {
+            width: 100%;
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 2500px;
+        }
+
+        /* Vista inicial con libro cerrado */
+        #initial-view {
+            text-align: center;
+            transition: opacity 0.5s ease-out;
+        }
+        #initial-view.fade-out {
+            opacity: 0;
+        }
+
+        #closed-book {
+            width: 550px;
+            height: 620px; /* Aumentada la altura */
+            background-color: #004d40; /* Verde oscuro */
+            border-radius: 8px 20px 20px 8px;
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5), inset 20px 0 20px rgba(0,0,0,0.2);
+            position: relative;
+            transform: rotateY(-30deg);
+            transition: transform 1s ease-in-out;
+            cursor: pointer;
+        }
+        
+        #closed-book:hover {
+            transform: rotateY(-20deg);
+        }
+
+        /* Estilo general del libro abierto */
+        #book {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
+            transition: opacity 0.5s ease-in;
+            position: relative;
+            transform-style: preserve-3d;
+            opacity: 0; /* Initially hidden for fade-in effect */
+        }
+        
+        .page {
+            width: 50%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform-origin: left center;
+            transition: transform 0.8s ease-in-out;
+            transform-style: preserve-3d;
+        }
+        
+        .page-content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 2rem 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertically centers the content wrapper */
+            background-color: #fdf8e8; /* Color papel viejo */
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            border: 1px solid #e0d8c0;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            overflow: hidden;  
+             /* Marca de agua */
+            background-image: url('https://storage.googleapis.com/maker-interactives-prod/user-uploaded-assets/manso-3.jpg-19327d33-3474-4152-b420-5a94e4bdb677');
+            background-size: 50%;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.95;
+        }
+         .page-content::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(253, 248, 232, 0.75); /* Capa de color para mejorar legibilidad */
+            z-index: 1;
+        }
+
+        .page-content > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        .dedications-wrapper {
+            width: 100%;
+        }
+
+        .book-title {
+            font-family: 'Playfair Display', serif;
+            color: #d4c5a0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            padding: 40px;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            border: none;
+            margin: 30px;
+            height: calc(100% - 60px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative; /* Contexto para el texto inferior */
+        }
+        .cover-footnote {
+            position: absolute;
+            bottom: 2rem; /* Distancia desde el borde inferior */
+            left: 40px;
+            right: 40px;
+        }
+
+        .front {
+            transform: rotateY(0deg);
+        }
+        .back {
+            transform: rotateY(180deg);
+        }
+        
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        .dedication {
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed #c0b498;
+            padding-bottom: 0.75rem;
+            text-align: center; /* Centered dedication text */
+        }
+        .dedication-message {
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .dedication-signature {
+            text-align: right;
+            font-style: italic;
+        }
+        .location-pin {
+            cursor: pointer;
+            color: #a0522d;
+            transition: transform 0.2s;
+            display: inline-block; /* Needed for transform */
+        }
+        .location-pin:hover {
+            transform: scale(1.2);
+        }
+        .dedication-name {
+            font-weight: bold;
+        }
+        .dedication-date {
+            font-size: 0.9rem;
+            color: #6b5b3b;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 20px;
+            width: calc(100% - 6rem);
+            text-align: center;
+            font-size: 0.9rem;
+            color: #8c7853;
+            z-index: 2;
+        }
+
+        /* Botones de navegación */
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(58, 42, 26, 0.5);
+            color: #fdf8e8;
+            border: 2px solid #d4c5a0;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 2rem;
+            font-family: 'Times New Roman', Times, serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+        }
+        .nav-button:hover {
+            background-color: rgba(58, 42, 26, 0.8);
+        }
+        #prev-page { left: 20px; }
+        #next-page { right: 20px; }
+
+
+        /* Botón para añadir dedicatoria */
+         #add-dedication-btn {
+            position: fixed;
+            top: 75px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background-color: #004d40;
+            color: #d4c5a0;
+            border: 3px solid #d4c5a0;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 2.5rem;
+            z-index: 2000;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+            padding-bottom: 4px; /* Ajuste visual del + */
+        }
+
+        /* Modal */
+        #dedication-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Corrección para asegurar que el modal esté oculto al inicio */
+        #dedication-modal.hidden {
+            display: none;
+        }
+        .modal-content {
+            background-color: #fdf8e8;
+            padding: 30px;
+            border-radius: 5px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 5px solid #c0b498;
+            max-height: 90vh; /* <-- AÑADIDO: Límite de altura */
+            overflow-y: auto; /* <-- AÑADIDO: Scroll interno */
+        }
+        .modal-content h2, .modal-content h3 {
+            text-align: center;
+            color: #3a2a1a;
+        }
+        .modal-content h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #c0b498;
+            padding-bottom: 0.5rem;
+        }
+        .modal-content input, .modal-content textarea, .modal-content select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px; /* Reduced margin */
+            border: 1px solid #c0b498;
+            background-color: #fff;
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            border-radius: 3px;
+        }
+        .modal-content textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        .year-inputs {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .year-inputs input {
+            width: 120px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* --- MAP STYLES Y POPUP SCROLLABLE --- */
+        #map-view {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5000;
+            background-color: #4a4a3a;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .map-button {
+            position: fixed;
+            background-color: #004d40;
+            color: #d4c5a0;
+            border: 2px solid #d4c5a0;
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        }
+        #show-map-btn {
+            top: 80px;
+            left: 20px;
+            z-index: 100; /* Debajo de los botones del libro, pero visible */
+        }
+        #close-map-btn {
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            z-index: 10000; /* Asegurarse que siempre esté visible */
+        }
+        #close-map-btn:hover {
+            transform: scale(1.05);
+        }
+        /* Estilos para el popup del mapa */
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+            background: #fdf8e8;
+        }
+        .leaflet-popup-content {
+            margin: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 15px; /* Espacio para la barra de scroll */
+        }
+        .popup-location-title {
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 10px 15px;
+            border-bottom: 1px solid #c0b498;
+            position: sticky;
+            top: 0;
+            background-color: #fdf8e8;
+            z-index: 10;
+        }
+        .popup-dedication-list {
+            padding: 15px;
+        }
+        .popup-dedication {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ddd;
+        }
+        .popup-dedication:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .popup-dedication-message {
+            font-style: italic;
+        }
+        .popup-dedication-signature {
+            font-size: 0.9rem;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+
+        /* --- Tutorial Styles --- */
+        .tutorial-bubble {
+            position: absolute;
+            background-color: rgba(0, 77, 64, 0.95);
+            color: #d4c5a0;
+            border: 2px solid #d4c5a0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 4000;
+            width: 220px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .tutorial-bubble .close-btn {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 26px;
+            height: 26px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            border: none;
+            color: #000;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            line-height: 1;
+            padding: 0;
+        }
+        .tutorial-bubble .close-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 1);
+        }
+
+        .tutorial-bubble::after {
+            content: '';
+            position: absolute;
+            border-style: solid;
+        }
+
+        #tutorial-step-1 {
+            top: 50%;
+            left: calc(50% - 275px - 240px); /* Ajustado para el nuevo tamaño del libro */
+            transform: translateY(-50%);
+        }
+        #tutorial-step-1::after { /* pointer pointing right */
+            top: 50%;
+            left: 100%;
+            margin-top: -10px;
+            border-width: 10px 0 10px 15px;
+            border-color: transparent transparent transparent rgba(0, 77, 64, 0.95);
+        }
+
+        #tutorial-step-2 {
+            top: 50%;
+            right: 90px;
+            transform: translateY(-50%);
+        }
+        #tutorial-step-2::after { /* pointer pointing left */
+            top: 50%;
+            left: 100%;
+            margin-top: -10px;
+            border-width: 10px 0 10px 15px;
+            border-color: transparent transparent transparent rgba(0, 77, 64, 0.95);
+        }
+
+        #tutorial-step-3 {
+            top: 105px;
+            right: 110px;
+            transform: translateY(-50%);
+        }
+         #tutorial-step-3::after { /* pointer pointing right */
+            top: 50%;
+            left: 100%;
+            margin-top: -10px;
+            border-width: 10px 0 10px 15px;
+            border-color: transparent transparent transparent rgba(0, 77, 64, 0.95);
+        }
+
+        /* Estilos del reproductor de música */
+        .widget-btn-press {
+            transition: transform 0.1s ease, background-color 0.2s ease;
+        }
+        .widget-btn-press:active {
+            transform: scale(0.95);
+        }
+        .player-widget {
+            position: fixed; /* Posición fija en la pantalla */
+            bottom: 20px;
+            left: 20px;
+            user-select: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div id="background-watermark"></div>
+    <h1 id="main-title" class="text-center text-2xl md:text-3xl text-[#d4c5a0] py-2 px-4" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.7); background-color: rgba(74, 74, 58, 0.8); flex-shrink: 0;">
+        Libro Digital de Firmas - Bicentenario Vedruna
+    </h1>
+    <button id="show-map-btn" class="map-button">Ver Mapa de Firmas</button>
+
+    <div id="app-container">
+        <!-- Vista Inicial: Libro Cerrado -->
+        <div id="initial-view">
+            <div id="closed-book">
+                <div class="book-title">
+                    <span>Libro de Firmas</span>
+                    <span class="text-2xl mt-4">Bicentenario Vedruna</span>
+                    <span class="text-xl mt-2">1826 - 2026</span>
+                    <!-- Texto añadido en la portada -->
+                    <p class="cover-footnote text-xs font-normal text-gray-300 leading-tight">
+                        Este libro ha sido elaborado en el Colegio Nuestra Señora del Carmen de San Fernando, en Cádiz, como parte del programa de actividades para la celebración del Bicentenario.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista Principal: Libro Abierto (inicialmente oculto) -->
+        <div id="book" style="display: none;">
+             <!-- Las páginas se generarán aquí con JS -->
+        </div>
+        
+        <button id="prev-page" class="nav-button" style="display: none;">‹</button>
+        <button id="next-page" class="nav-button" style="display: none;">›</button>
+
+        <!-- Vista de Mapa (inicialmente oculta) -->
+        <div id="map-view" class="hidden">
+            <div id="map"></div>
+            <button id="close-map-btn" class="map-button">Volver</button>
+        </div>
+
+        <!-- Tutorial Bubbles -->
+        <div id="tutorial-step-1" class="tutorial-bubble hidden">
+            <button class="close-btn">&times;</button>
+            <p>Haz clic en el libro para abrirlo</p>
+        </div>
+        <div id="tutorial-step-2" class="tutorial-bubble hidden">
+            <button class="close-btn">&times;</button>
+            <p>Pasa las páginas del libro con estos botones</p>
+        </div>
+        <div id="tutorial-step-3" class="tutorial-bubble hidden">
+            <button class="close-btn">&times;</button>
+            <p>Añade tu propia dedicatoria para formar parte de la historia.</p>
+        </div>
+
+        <!-- Notification Toast for new dedication -->
+        <div id="new-dedication-toast" class="hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[rgba(0,77,64,0.95)] text-[#d4c5a0] border-2 border-[#d4c5a0] p-8 rounded-lg shadow-2xl z-[5000] text-center">
+             <p class="text-2xl font-bold"></p> <!-- El texto se insertará dinámicamente -->
+        </div>
+
+    </div>
+    
+    <!-- Botón para abrir el modal (inicialmente oculto) -->
+    <button id="add-dedication-btn" style="display: none;">+</button>
+
+    <!-- Modal para añadir dedicatoria -->
+    <div id="dedication-modal" class="hidden">
+        <div class="modal-content">
+            <form id="dedication-form">
+                <!-- VISTA 1: PRINCIPAL -->
+                <div id="main-form-view">
+                    <h2>Deje su Mensaje</h2>
+                    <input type="text" id="name" placeholder="Nombre y Apellidos" required>
+                    <textarea id="message" placeholder="Escriba aquí su dedicatoria..." maxlength="500" required></textarea>
+                    <div id="char-counter" class="text-right text-sm text-gray-600 mb-4">0/500</div>
+                     <button type="button" id="go-to-optional-btn" class="w-full mt-2 px-4 py-2 bg-gray-200 text-gray-800 rounded border border-gray-400">Añadir Información Opcional</button>
+                </div>
+
+                <!-- VISTA 2: OPCIONAL -->
+                <div id="optional-form-view" class="hidden">
+                     <h3>Información opcional</h3>
+                     
+                     <label for="role-select" class="block mb-2 font-bold">Tu vínculo con Vedruna:</label>
+                     <select id="role-select" name="role">
+                        <option value="">-- Selecciona una opción --</option>
+                        <option value="current_student">Alumno/a actual</option>
+                        <option value="current_teacher">Profesor/a actual</option>
+                        <option value="current_pas">Personal de Administración y Servicios</option>
+                        <option value="former_student">Antiguo/a alumno/a</option>
+                        <option value="former_teacher">Antiguo/a profesor/a</option>
+                        <option value="former_pas">Antiguo/a P.A.S.</option>
+                        <option value="family">Familia de alumnos/as</option>
+                        <option value="other">Otro</option>
+                     </select>
+                    
+                    <div id="former-student-years" class="year-inputs hidden">
+                        <input type="number" id="student-start-year" placeholder="Año inicio">
+                        <input type="number" id="student-end-year" placeholder="Año fin (aprox.)">
+                    </div>
+                    
+                    <div id="former-teacher-years" class="year-inputs hidden">
+                        <input type="number" id="teacher-start-year" placeholder="Año inicio">
+                        <input type="number" id="teacher-end-year" placeholder="Año fin (aprox.)">
+                    </div>
+
+                    <div id="former-pas-years" class="year-inputs hidden">
+                        <input type="number" id="pas-start-year" placeholder="Año inicio">
+                        <input type="number" id="pas-end-year" placeholder="Año fin (aprox.)">
+                    </div>
+
+                    <div id="other-role-input" class="hidden mt-2">
+                        <input type="text" id="other-role-text" placeholder="Especifique su vínculo">
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="location" class="font-bold">Localización Geográfica 
+                            <span class="tooltip text-gray-500 font-normal">(?)
+                                <span class="tooltiptext">Introduce dónde vives ahora (pueblo, ciudad o país).</span>
+                            </span>
+                        </label>
+                        <input type="text" id="location" placeholder="Ej: San Fernando, Cádiz">
+                    </div>
+                </div>
+            </form>
+            
+            <!-- Botones para la vista principal -->
+            <div id="main-form-buttons" class="flex justify-end gap-4 mt-4">
+                <button type="button" id="close-modal-btn" class="px-4 py-2 bg-gray-600 text-white rounded">Cerrar</button>
+                <button type="submit" id="submit-dedication-btn" form="dedication-form" class="px-4 py-2 bg-[#004d40] text-[#d4c5a0] rounded">Firmar en el Libro</button>
+            </div>
+            
+            <!-- Botones para la vista opcional -->
+            <div id="optional-form-buttons" class="hidden flex justify-end gap-4 mt-4">
+                <button type="button" id="go-to-main-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded border border-gray-400">Volver</button>
+                <button type="submit" id="submit-dedication-btn-optional" form="dedication-form" class="px-4 py-2 bg-[#004d40] text-[#d4c5a0] rounded">Firmar en el Libro</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ### INICIO DEL COMPONENTE DEL REPRODUCTOR ### -->
+    <div id="playerControls" class="player-widget relative text-center p-3 pt-6 w-full max-w-[240px] bg-[#004d40]/80 backdrop-blur-sm border-2 border-[#d4c5a0] rounded-2xl">
+        <audio id="audioPlayer" loop></audio>
+        
+        <button id="playerCloseButton" class="widget-btn-press absolute top-1 right-1 text-[#d4c5a0] hover:text-white rounded-full p-1 z-10">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0- 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+        </button>
+
+        <div class="flex justify-center items-center mb-3">
+            <button id="playerPauseButton" class="widget-btn-press bg-[#d4c5a0] hover:bg-[#e0d8c0] text-[#004d40] w-12 h-12 rounded-full flex items-center justify-center">
+                <svg id="playIcon" class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                <svg id="pauseIcon" class="w-7 h-7 hidden" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+
+        <div id="volumeContainer" class="w-full h-2 bg-[#002d24] rounded-full cursor-pointer">
+            <div id="volumeBar" class="h-full bg-[#d4c5a0] rounded-full"></div>
+        </div>
+    </div>
+    <!-- ### FIN DEL COMPONENTE DEL REPRODUCTOR ### -->
+
+
+    <script type="module">
+        // Importaciones de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, getDocs, writeBatch, doc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- Configuración de Firebase ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "...", authDomain: "...", projectId: "..." };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-vedruna-app';
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- Referencia a la colección ---
+        const dedicationsCollectionRef = collection(db, `artifacts/${appId}/public/data/dedications`);
+
+        // --- Lógica de la aplicación ---
+        const book = document.getElementById('book');
+        const initialView = document.getElementById('initial-view');
+        const closedBook = document.getElementById('closed-book');
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        const addDedicationBtn = document.getElementById('add-dedication-btn');
+        const dedicationModal = document.getElementById('dedication-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const dedicationForm = document.getElementById('dedication-form');
+        const messageTextarea = document.getElementById('message');
+        const charCounter = document.getElementById('char-counter');
+        
+        // Elementos del DOM
+        const showMapBtn = document.getElementById('show-map-btn');
+        const closeMapBtn = document.getElementById('close-map-btn');
+        const mapView = document.getElementById('map-view');
+        const goToOptionalBtn = document.getElementById('go-to-optional-btn');
+        const goToMainBtn = document.getElementById('go-to-main-btn');
+        const mainFormView = document.getElementById('main-form-view');
+        const optionalFormView = document.getElementById('optional-form-view');
+        const mainFormButtons = document.getElementById('main-form-buttons');
+        const optionalFormButtons = document.getElementById('optional-form-buttons');
+        const roleSelect = document.getElementById('role-select');
+
+        let map; // Variable para la instancia del mapa
+
+        let justAddedDedicationId = null;
+        let isBookOpen = false;
+        let dedications = [];
+        let pages = [];
+        let currentPage = 0;
+        let playerManuallyClosed = false;
+        let lastViewBeforeMap = 'initial'; // 'initial' or 'book'
+
+        // --- Lógica del Modal (Vistas y Campos opcionales con Dropdown) ---
+        goToOptionalBtn.addEventListener('click', () => {
+            mainFormView.classList.add('hidden');
+            mainFormButtons.classList.add('hidden');
+            optionalFormView.classList.remove('hidden');
+            optionalFormButtons.classList.remove('hidden');
+        });
+        goToMainBtn.addEventListener('click', () => {
+            optionalFormView.classList.add('hidden');
+            optionalFormButtons.classList.add('hidden');
+            mainFormView.classList.remove('hidden');
+            mainFormButtons.classList.remove('hidden');
+        });
+
+        roleSelect.addEventListener('change', () => {
+            const selectedValue = roleSelect.value;
+            document.querySelectorAll('.year-inputs').forEach(el => el.classList.add('hidden'));
+            document.getElementById('other-role-input').classList.add('hidden');
+
+            if (selectedValue === 'former_student') {
+                document.getElementById('former-student-years').classList.remove('hidden');
+            } else if (selectedValue === 'former_teacher') {
+                document.getElementById('former-teacher-years').classList.remove('hidden');
+            } else if (selectedValue === 'former_pas') {
+                document.getElementById('former-pas-years').classList.remove('hidden');
+            } else if (selectedValue === 'other') {
+                document.getElementById('other-role-input').classList.remove('hidden');
+            }
+        });
+
+        // --- Lógica del Tutorial ---
+        function showTutorialStep(step) {
+            if (localStorage.getItem('tutorialCompleted') === 'true') return;
+            const tutorialBubble = document.getElementById(`tutorial-step-${step}`);
+            if (tutorialBubble) {
+                tutorialBubble.classList.remove('hidden');
+            }
+        }
+
+        function hideTutorialStep(step) {
+            const tutorialBubble = document.getElementById(`tutorial-step-${step}`);
+            if (tutorialBubble) {
+                tutorialBubble.classList.add('hidden');
+            }
+        }
+        
+        document.querySelectorAll('.tutorial-bubble .close-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const bubble = e.target.parentElement;
+                if (bubble) {
+                    bubble.classList.add('hidden');
+                    if (bubble.id === 'tutorial-step-3') {
+                        localStorage.setItem('tutorialCompleted', 'true');
+                    }
+                }
+            });
+        });
+
+        // --- Lógica del Libro ---
+        function openBook() {
+            const tutorialStep1 = document.getElementById('tutorial-step-1');
+            if (tutorialStep1) tutorialStep1.remove();
+            
+            initialView.classList.add('fade-out');
+            
+            setTimeout(() => {
+                initialView.style.display = 'none';
+                book.style.display = 'block';
+
+                createPages();  
+                isBookOpen = true;
+
+                setTimeout(() => {
+                    book.style.opacity = '1';
+                    prevButton.style.display = 'block';
+                    nextButton.style.display = 'block';
+                    addDedicationBtn.style.display = 'block';
+                    
+                    showTutorialStep(2);
+
+                }, 50);
+            }, 500);
+        }
+
+        function closeBook() {
+            isBookOpen = false;
+            book.style.opacity = '0';
+            prevButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            addDedicationBtn.style.display = 'none';
+
+            hideTutorialStep(2);
+            hideTutorialStep(3);
+
+            setTimeout(() => {
+                book.style.display = 'none';
+                initialView.style.display = 'block';
+                showMapBtn.style.display = 'block'; // Mostrar botón de mapa
+                initialView.classList.remove('fade-out');
+                pages = [];
+                book.innerHTML = '';
+                currentPage = 0;
+            }, 500);
+        }
+        closedBook.addEventListener('click', openBook);
+
+        // --- Lógica del Mapa (con agrupación de marcadores) ---
+        function showMap(centerOn = null) {
+            lastViewBeforeMap = isBookOpen ? 'book' : 'initial';
+            
+            showMapBtn.style.display = 'none';
+            addDedicationBtn.style.display = 'none';
+            book.style.display = 'none';
+            initialView.style.display = 'none';
+            prevButton.style.display = 'none';
+            nextButton.style.display = 'none';
+            
+            mapView.classList.remove('hidden');
+
+            if (!map) { // Inicializar el mapa solo una vez
+                map = L.map('map').setView([40.416775, -3.703790], 6); // Centrado en España
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+            }
+
+            // Limpiar marcadores existentes antes de añadir nuevos
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Agrupar dedicatorias por ubicación
+            const locationsMap = {};
+            dedications.forEach(ded => {
+                if (ded.lat && ded.lon && ded.canonicalLocationName) {
+                    const key = ded.canonicalLocationName; // Agrupar por nombre canónico
+                    if (!locationsMap[key]) {
+                        locationsMap[key] = {
+                            lat: ded.lat,
+                            lon: ded.lon,
+                            locationName: key,
+                            entries: []
+                        };
+                    }
+                    locationsMap[key].entries.push(ded);
+                }
+            });
+
+            // Crear un marcador por cada ubicación agrupada
+            Object.values(locationsMap).forEach(locationGroup => {
+                const marker = L.marker([locationGroup.lat, locationGroup.lon]).addTo(map);
+
+                // Crear el contenido HTML del popup con scroll
+                let dedicationsHtml = '';
+                // Las dedicatorias ya vienen ordenadas por timestamp de Firestore
+                locationGroup.entries.forEach(entry => {
+                    const clarification = entry.signatureClarification ? `<i class="font-normal">${entry.signatureClarification}</i>` : '';
+                    dedicationsHtml += `
+                        <div class="popup-dedication">
+                            <p class="popup-dedication-message">"${entry.message}"</p>
+                            <p class="popup-dedication-signature">- ${entry.name}, ${clarification}</p>
+                        </div>
+                    `;
+                });
+
+                const popupContent = `
+                    <div class="popup-location-title">${locationGroup.locationName}</div>
+                    <div class="popup-dedication-list">${dedicationsHtml}</div>
+                `;
+
+                marker.bindPopup(popupContent);
+            });
+
+            if (centerOn) {
+                map.setView(centerOn, 13); // Zoom más cercano si se centra en un punto
+            } else {
+                 map.setView([40.416775, -3.703790], 6); // Re-centrar en España
+            }
+        }
+
+
+        function closeMap() {
+            mapView.classList.add('hidden');
+            showMapBtn.style.display = 'block';
+
+            if(lastViewBeforeMap === 'book') {
+                book.style.display = 'block';
+                prevButton.style.display = 'block';
+                nextButton.style.display = 'block';
+                addDedicationBtn.style.display = 'block';
+            } else {
+                initialView.style.display = 'block';
+            }
+        }
+
+        showMapBtn.addEventListener('click', () => showMap());
+        closeMapBtn.addEventListener('click', closeMap);
+
+        book.addEventListener('click', (e) => {
+            const pin = e.target.closest('.location-pin');
+            if (pin) {
+                const lat = parseFloat(pin.dataset.lat);
+                const lon = parseFloat(pin.dataset.lon);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    showMap([lat, lon]);
+                }
+            }
+        });
+
+        // --- Lógica de Creación de Páginas ---
+        function createPages() {
+            if (!book) return;
+            book.innerHTML = '';
+            pages = [];
+            
+            const titlePageContent = { isTitle: true, title: "Libro de Firmas", subtitle: "Bicentenario Vedruna", years: "1826 - 2026" };
+            const contentToPaginate = [titlePageContent, ...dedications];
+            const totalPhysicalPages = Math.ceil(contentToPaginate.length / 2);
+
+            for (let i = 0; i < totalPhysicalPages; i++) {
+                const pageElement = document.createElement('div');
+                pageElement.classList.add('page');
+                const frontContentWrapper = document.createElement('div');
+                frontContentWrapper.classList.add('page-content', 'front');
+                const backContentWrapper = document.createElement('div');
+                backContentWrapper.classList.add('page-content', 'back');
+                
+                const processContent = (item, pageNumber) => {
+                    if (!item) return ''; // Si no hay contenido, devuelve una cadena vacía
+                    let contentHtml = '';
+                    if (item.isTitle) {
+                         contentHtml = `<div class="dedications-wrapper" style="text-align: center;"><h2 class="text-3xl font-bold mb-4" style="color: #3a2a1a;">${item.title}</h2><p class="text-2xl" style="color: #3a2a1a;">${item.subtitle}</p><p class="text-xl mt-4" style="color: #3a2a1a;">${item.years}</p></div>`;
+                    } else {
+                        // CORRECCIÓN: Nuevo formato de firma
+                        const signatureClarificationHtml = item.signatureClarification ? `<i class="font-normal block">${item.signatureClarification}</i>` : '';
+                        const locationPinHtml = (item.lat && item.lon) ? `
+                            <div class="mt-2">
+                                <span class="location-pin" data-lat="${item.lat}" data-lon="${item.lon}" title="Ver en el mapa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-4.198 0-8 3.403-8 7.602 0 4.198 3.469 9.21 8 16.398 4.531-7.188 8-12.2 8-16.398 0-4.199-3.801-7.602-8-7.602zm0 11c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"/></svg>
+                                </span>
+                            </div>` : '';
+
+                        contentHtml = `
+                            <div class="dedications-wrapper">
+                                <div class="dedication" data-id="${item.id}">
+                                    <p class="dedication-message font-serif">${item.message}</p>
+                                    <div class="dedication-signature">
+                                        <span class="dedication-name font-serif">${item.name}</span>
+                                        ${signatureClarificationHtml}
+                                        <span class="dedication-date block">${item.date}</span>
+                                        ${locationPinHtml}
+                                    </div>
+                                </div>
+                            </div>`;
+                    }
+                    return contentHtml + `<div class="page-number">${pageNumber}</div>`;
+                };
+
+                // LÓGICA CORREGIDA PARA LAS PÁGINAS
+                // Página DERECHA (impar): .front
+                const frontContentIndex = i * 2;
+                const frontPageNumber = frontContentIndex + 1;
+                frontContentWrapper.innerHTML = processContent(contentToPaginate[frontContentIndex], frontPageNumber);
+
+                // Página IZQUIERDA (par): .back
+                const backContentIndex = (i * 2) + 1;
+                const backPageNumber = backContentIndex + 1;
+                backContentWrapper.innerHTML = processContent(contentToPaginate[backContentIndex], backPageNumber);
+                
+                // El orden de añadir es importante para la rotación 3D
+                pageElement.appendChild(frontContentWrapper);
+                pageElement.appendChild(backContentWrapper);
+
+                pages.push(pageElement);
+                book.appendChild(pageElement);
+            }
+
+            pages.forEach((p, i) => { p.style.zIndex = pages.length - i; });
+            updateButtons();
+        }
+
+        // --- Lógica de Gemini y Envío de Formulario ---
+        const API_KEY = ""; // Provided by environment
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        
+        async function callGemini(prompt) {
+             try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                if (!response.ok) throw new Error(`API call failed with status ${response.status}`);
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return null;
+            }
+        }
+
+        dedicationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mainSubmitButton = document.getElementById('submit-dedication-btn');
+            const optionalSubmitButton = document.getElementById('submit-dedication-btn-optional');
+            mainSubmitButton.disabled = true;
+            optionalSubmitButton.disabled = true;
+            mainSubmitButton.textContent = 'Procesando firma...';
+            optionalSubmitButton.textContent = 'Procesando firma...';
+
+            const name = document.getElementById('name').value;
+            const message = document.getElementById('message').value;
+            const locationText = document.getElementById('location').value;
+
+            // Recopilar información opcional del dropdown
+            const selectedRole = roleSelect.value;
+            const optionalInfo = { name: name };
+            if(selectedRole) {
+                optionalInfo.role = selectedRole;
+            }
+
+            if (selectedRole === 'former_student') {
+                optionalInfo.studentStartYear = document.getElementById('student-start-year').value;
+                optionalInfo.studentEndYear = document.getElementById('student-end-year').value;
+            }
+            if (selectedRole === 'former_teacher') {
+                optionalInfo.teacherStartYear = document.getElementById('teacher-start-year').value;
+                optionalInfo.teacherEndYear = document.getElementById('teacher-end-year').value;
+            }
+             if (selectedRole === 'former_pas') {
+                optionalInfo.pasStartYear = document.getElementById('pas-start-year').value;
+                optionalInfo.pasEndYear = document.getElementById('pas-end-year').value;
+            }
+            if (selectedRole === 'other') {
+                optionalInfo.otherRoleText = document.getElementById('other-role-text').value;
+            }
+            
+            let locationData = {};
+            if (locationText.trim() !== '') {
+                const locationPrompt = `From the following text, extract only the general location (city, region, or country) and its approximate latitude and longitude. Ignore specific street addresses or personal data. Respond ONLY with a valid JSON object like {"locationName": "City, Country", "lat": 12.34, "lon": 56.78}. If you cannot determine a location, respond with {}. User input: "${locationText}"`;
+                const locationResponse = await callGemini(locationPrompt);
+                try {
+                    const cleanedResponse = locationResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+                    locationData = JSON.parse(cleanedResponse);
+                    if (locationData.locationName) {
+                        const canonicalPrompt = `From the following location name, provide a standardized canonical name in the format "City, Province, Country". If the province is not obvious, use the region. If it's just a country, use the country name. Respond with only the canonical name. Location: "${locationData.locationName}"`;
+                        const canonicalResponse = await callGemini(canonicalPrompt);
+                        if (canonicalResponse) {
+                            locationData.canonicalLocationName = canonicalResponse.trim();
+                        }
+                    }
+                } catch (err) { console.error("Could not parse location JSON:", err); }
+            }
+            
+            let signatureClarification = '';
+            if (optionalInfo.role) {
+                const signaturePrompt = `Generate a short, elegant, single-line clarification for a signature based on the information in the following JSON data. Use the 'name' field to correctly gender adjectives and roles (e.g., 'profesor' for Eduardo, 'alumna' for Ana). Do NOT repeat the person's name in your response. Examples: "Antiguo alumno (1990-1995)", "Profesora actual", "Familia". If no role is provided, return an empty string. Data: ${JSON.stringify(optionalInfo)}`;
+                signatureClarification = await callGemini(signaturePrompt);
+            }
+
+            const dedicationData = {
+                name,
+                message,
+                fontStyle: 'font-serif', // Fuente única
+                date: new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }),
+                timestamp: new Date(),
+                signatureClarification: signatureClarification ? signatureClarification.trim() : '',
+                ...locationData,
+                rawOptionalInfo: optionalInfo
+            };
+
+            try {
+                const docRef = await addDoc(dedicationsCollectionRef, dedicationData);
+                
+                // CORRECCIÓN: Mostrar Toast inmediatamente
+                const toast = document.getElementById('new-dedication-toast');
+                toast.querySelector('p').textContent = `Gracias, ${name.split(' ')[0]}, por completar una página de la historia de la comunidad Vedruna`;
+                toast.classList.remove('hidden');
+                setTimeout(() => toast.classList.add('hidden'), 4000);
+
+                justAddedDedicationId = docRef.id; // Para la animación de pasar página
+                dedicationForm.reset();
+                 document.querySelectorAll('.year-inputs, #other-role-input').forEach(el => el.classList.add('hidden'));
+                charCounter.textContent = '0/500';
+                dedicationModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Error al añadir la dedicatoria: ", error);
+            } finally {
+                mainSubmitButton.disabled = false;
+                optionalSubmitButton.disabled = false;
+                mainSubmitButton.textContent = 'Firmar en el Libro';
+                optionalSubmitButton.textContent = 'Firmar en el Libro';
+            }
+        });
+        
+        // --- INICIALIZACIÓN Y FUNCIONES AUXILIARES ---
+        async function initializeAppWithAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                showTutorialStep(1);
+
+                // Lógica de Autoplay
+                if (!playerManuallyClosed) {
+                    const audioPlayer = document.getElementById('audioPlayer');
+                    document.getElementById('playerControls').style.display = 'block';
+                    
+                    audioPlayer.play().catch(() => {
+                        console.warn("Autoplay bloqueado. Esperando primer clic.");
+                        const startOnClick = () => {
+                            if (!playerManuallyClosed && audioPlayer.paused) {
+                                audioPlayer.play();
+                            }
+                            document.body.removeEventListener('click', startOnClick, true);
+                        };
+                        document.body.addEventListener('click', startOnClick, true);
+                    });
+                }
+
+
+                const q = query(dedicationsCollectionRef, orderBy("timestamp", "asc"));
+                onSnapshot(q, (querySnapshot) => {
+                    dedications = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    if (isBookOpen) {
+                        const previousPage = currentPage;
+                        createPages(); 
+                        
+                        if (justAddedDedicationId) {
+                            // La toast ya se muestra, solo queda pasar la página
+                            const newLastPage = pages.length;
+                            animateToPage(newLastPage);
+                            justAddedDedicationId = null;
+                        } else {
+                           for (let i = 0; i < previousPage; i++) {
+                                if (pages[i]) pages[i].classList.add('flipped');
+                            }
+                            currentPage = previousPage;
+                        }
+                        updateButtons();
+                    }
+                }, (error) => console.error("Error in snapshot listener: ", error));
+                
+            } catch(error) {
+                console.error("Error during app initialization: ", error);
+            }
+        }
+        
+        initializeAppWithAuth();
+        
+        function updateButtons() {
+            prevButton.disabled = false; 
+            nextButton.disabled = currentPage >= pages.length;
+            prevButton.style.opacity = '1';
+            nextButton.style.opacity = nextButton.disabled ? '0.5' : '1';
+        }
+
+        function handlePageTurn() {
+            const tutorialStep2 = document.getElementById('tutorial-step-2');
+            if (tutorialStep2 && !tutorialStep2.classList.contains('hidden')) {
+                hideTutorialStep(2);
+                showTutorialStep(3);
+            }
+        }
+
+        function animateToPage(targetPage) {
+            if (currentPage >= targetPage) return;
+            const turnPageInterval = setInterval(() => {
+                if (currentPage < targetPage) {
+                    nextButton.click();
+                } else {
+                    clearInterval(turnPageInterval);
+                }
+            }, 900);
+        }
+
+        nextButton.addEventListener('click', () => {
+            if (nextButton.disabled) return;
+            handlePageTurn();
+            if (currentPage < pages.length) {
+                pages[currentPage].classList.add('flipped');
+                pages[currentPage].style.zIndex = 1000 + currentPage;
+                currentPage++;
+                updateButtons();
+            }
+        });
+        
+        prevButton.addEventListener('click', () => {
+            handlePageTurn();
+            if (currentPage > 0) {
+                currentPage--;
+                pages[currentPage].classList.remove('flipped');
+                pages[currentPage].style.zIndex = pages.length - currentPage;
+                updateButtons();
+            } else {
+                closeBook();
+            }
+        });
+
+        addDedicationBtn.addEventListener('click', () => {
+            hideTutorialStep(3);
+            localStorage.setItem('tutorialCompleted', 'true');
+            // Reset modal to main view when opening
+            optionalFormView.classList.add('hidden');
+            optionalFormButtons.classList.add('hidden');
+            mainFormView.classList.remove('hidden');
+            mainFormButtons.classList.remove('hidden');
+            dedicationModal.classList.remove('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', () => dedicationModal.classList.add('hidden'));
+
+        messageTextarea.addEventListener('input', () => {
+            const currentLength = messageTextarea.value.length;
+            const maxLength = 500;
+            charCounter.textContent = `${currentLength}/${maxLength}`;
+            if (currentLength >= maxLength) {
+                charCounter.classList.add('text-red-500');
+                charCounter.classList.remove('text-gray-600');
+            } else {
+                charCounter.classList.remove('text-red-500');
+                charCounter.classList.add('text-gray-600');
+            }
+        });
+
+        // --- LÓGICA DEL REPRODUCTOR DE AUDIO ---
+        (() => {
+            const songs = [
+                'https://ejruizgarcia.github.io/music/mujerdelsiconfiado.mp3'
+            ];
+
+            const audioPlayer = document.getElementById('audioPlayer');
+            const playerControls = document.getElementById('playerControls');
+            const pauseButton = document.getElementById('playerPauseButton');
+            const closeButton = document.getElementById('playerCloseButton');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const volumeContainer = document.getElementById('volumeContainer');
+            const volumeBar = document.getElementById('volumeBar');
+
+            let isDraggingVolume = false;
+
+            function loadTrack() {
+                audioPlayer.src = songs[0];
+                audioPlayer.load();
+            }
+
+            function setVolume(event) {
+                const rect = volumeContainer.getBoundingClientRect();
+                const clickX = (event.touches ? event.touches[0].pageX : event.pageX) - rect.left;
+                const width = rect.width;
+                let volume = clickX / width;
+                volume = Math.max(0, Math.min(1, volume));
+                audioPlayer.volume = volume;
+                volumeBar.style.width = `${volume * 100}%`;
+            }
+            
+            function updateVolumeBar() {
+                volumeBar.style.width = `${audioPlayer.volume * 100}%`;
+            }
+
+            loadTrack();
+            audioPlayer.volume = 0.25;
+            updateVolumeBar();
+
+            audioPlayer.addEventListener('play', () => {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+            });
+
+            audioPlayer.addEventListener('pause', () => {
+                pauseIcon.classList.add('hidden');
+                playIcon.classList.remove('hidden');
+            });
+
+            pauseButton.addEventListener('click', () => {
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                } else {
+                    audioPlayer.pause();
+                }
+            });
+
+            volumeContainer.addEventListener('mousedown', (e) => { isDraggingVolume = true; setVolume(e); });
+            document.addEventListener('mousemove', (e) => { if (isDraggingVolume) setVolume(e); });
+            document.addEventListener('mouseup', () => { isDraggingVolume = false; });
+            volumeContainer.addEventListener('touchstart', (e) => { isDraggingVolume = true; setVolume(e); });
+            document.addEventListener('touchmove', (e) => { if (isDraggingVolume) setVolume(e); });
+            document.addEventListener('touchend', () => { isDraggingVolume = false; });
+
+            closeButton.addEventListener('click', () => {
+                playerManuallyClosed = true;
+                audioPlayer.pause();
+                audioPlayer.src = ''; 
+                audioPlayer.removeAttribute('src'); // Forzar la descarga en todos los navegadores
+                audioPlayer.load();
+                playerControls.style.display = 'none'; 
+            });
+            
+        })();
+
+    </script>
+</body>
+</html>
+
 
